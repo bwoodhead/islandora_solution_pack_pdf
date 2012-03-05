@@ -4,7 +4,6 @@
  * @file
  * Islandora pdf solution pack module
  */
-define('ISLANDORA_PDF_SP_MODS_FORM_NAME', 'Islandora PDF MODS Form');
 
 /**
  * islandora pdf sp required fedora objects
@@ -12,30 +11,10 @@ define('ISLANDORA_PDF_SP_MODS_FORM_NAME', 'Islandora PDF MODS Form');
  */
 function islandora_pdf_sp_required_fedora_objects() {
 
+    // Get the module path
+    $module_path = drupal_get_path('module', 'islandora_pdf_sp');
 
-  $module_path = drupal_get_path('module', 'islandora_pdf_sp');
-
-  // Put the form in the database
-  module_load_include('inc', 'xml_form_builder', 'XMLFormDatabase');
-  if (!XMLFormDatabase::Exists(ISLANDORA_PDF_SP_MODS_FORM_NAME)) {
-    $definition = new DOMDocument();
-    $definition->load($module_path . '/xml/mods_article.xml');
-    XMLFormDatabase::Create(ISLANDORA_PDF_SP_MODS_FORM_NAME, $definition);
-  }
-
-  // Associates the form with the content model
-  $result = db_result(db_query('Select content_model from {islandora_content_model_forms} where  content_model = "%s" and form_name = "%s"', 'islandora:sp_strict_pdf', 'Islandora PDF MODS Form'));
-  if (!$result) {
-    $object = new stdClass();
-    $object->content_model = 'islandora:sp_strict_pdf';
-    $object->form_name = 'Islandora PDF MODS Form';
-    $object->dsid = 'MODS';
-    $object->title_field = "['titleInfo']['title']";
-    $object->transform = 'mods_to_dc.xsl';
-    $result = drupal_write_record('islandora_content_model_forms', $object);
-  }
-
-  return array(
+    return array(
     'islandora_pdf_sp' => array(
       'module' => 'islandora_pdf_sp',
       'title' => 'Islandora PDF Solution Pack',
@@ -69,3 +48,55 @@ function islandora_pdf_sp_required_fedora_objects() {
   );
 }
 
+/**
+ * SP Hook: Set the solution pack defaults 
+ * @param type $data
+ * @return string 
+ */
+function islandora_pdf_sp_setup_defaults(&$data)
+{
+    // Get the module path
+    $module_path = drupal_get_path('module', 'islandora_pdf_sp');
+    
+    // Create an area for this solution pack
+    $data['islandora_pdf_sp'] = array(
+        'label' => 'Islandora PDF Solution Pack',
+        'forms' => array(
+            array(
+                'label' => 'Islandora PDF Solution Pack',
+                'file' => "$module_path/mods_article.xml",
+            ),
+        ), 
+        'objects' => array(
+            array(
+                'pid' => 'islandora:sp_strict_pdf',
+                'label' => 'Islandora strict PDF content model',
+                'dsid' => 'ISLANDORACM',
+                'datastream_file' => "$module_path/xml/STRICT_SP_PDFCM.xml",
+                'dsversion' => NULL,
+                'foxml_file' => NULL,
+                'form' => 'Islandora PDF Solution Pack'
+            ), 
+            array(
+                'pid' => 'islandora:sp_pdf_collection',
+                'label' => 'Islandora PDF Collection',
+                'cmodel' => 'islandora:collectionCModel',
+                'parent' => variable_get('fedora_repository_pid', 'islandora:root'),
+                'datastreams' => array(
+                    array(
+                        'dsid' => 'TN',
+                        'datastream_file' => "$module_path/images/Crystal_Clear_filesystem_folder_grey.png",
+                        'mimetype' => 'image/png',
+                    ),
+                    array(
+                        'dsid' => 'COLLECTION_POLICY',
+                        'datastream_file' => "$module_path/xml/PDF-COLLECTION POLICY.xml",
+                    )
+                )
+            )
+        )
+    );
+    
+    // Return the config
+    return $data;
+}
